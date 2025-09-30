@@ -3,7 +3,7 @@
     Features: Password Gateway, Command Bar, Notifications, Multiple Pages
 ]]
 
-local CoreModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Arroi/lgd/refs/heads/main/MicUp_Core.lua"))()
+local CoreModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Arroi/lgd/refs/heads/main/mic%20up/MicUp_Core.lua"))()
 local Config = CoreModule.Config
 local MicUp = CoreModule.MicUp
 
@@ -522,10 +522,18 @@ function CreateDashboard()
     
     -- Content Area
     local ContentArea = Instance.new("Frame")
-    ContentArea.Size = UDim2.new(1, -180, 1, -125)
+    ContentArea.Size = UDim2.new(1, -190, 1, -135)
     ContentArea.Position = UDim2.new(0, 170, 0, 115)
     ContentArea.BackgroundTransparency = 1
     ContentArea.Parent = DashboardFrame
+    
+    -- Add padding to content
+    local ContentPadding = Instance.new("UIPadding")
+    ContentPadding.PaddingLeft = UDim.new(0, 5)
+    ContentPadding.PaddingRight = UDim.new(0, 5)
+    ContentPadding.PaddingTop = UDim.new(0, 5)
+    ContentPadding.PaddingBottom = UDim.new(0, 5)
+    ContentPadding.Parent = ContentArea
     
     -- Create Pages
     CreatePages(Sidebar, ContentArea)

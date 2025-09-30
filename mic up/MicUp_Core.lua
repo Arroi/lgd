@@ -58,8 +58,8 @@ local Config = {
     },
     Baseplate = {
         Enabled = false,
-        Size = 50,
-        Transparency = 0.5,
+        Size = 2048,
+        Transparency = 0.3,
         Color = Color3.fromRGB(100, 100, 100)
     }
 }
@@ -121,15 +121,8 @@ end
 function MicUp:StartFlying()
     if FlyConnection then return end
     
-    local BV = Instance.new("BodyVelocity")
-    BV.Velocity = Vector3.new(0, 0, 0)
-    BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    BV.Parent = HumanoidRootPart
-    
-    local BG = Instance.new("BodyGyro")
-    BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    BG.CFrame = HumanoidRootPart.CFrame
-    BG.Parent = HumanoidRootPart
+    -- Disable default character controls
+    Humanoid.PlatformStand = true
     
     FlyConnection = RunService.Heartbeat:Connect(function()
         if not Config.Flying.Enabled then return end
@@ -156,8 +149,14 @@ function MicUp:StartFlying()
             MoveDirection = MoveDirection - Vector3.new(0, 1, 0)
         end
         
-        BV.Velocity = MoveDirection.Unit * Config.Flying.Speed
-        BG.CFrame = Camera.CFrame
+        -- Smooth movement with CFrame lerp
+        if MoveDirection.Magnitude > 0 then
+            local targetCFrame = HumanoidRootPart.CFrame + (MoveDirection.Unit * (Config.Flying.Speed / 10))
+            HumanoidRootPart.CFrame = HumanoidRootPart.CFrame:Lerp(targetCFrame, 0.3)
+        end
+        
+        -- Keep character upright and facing camera direction
+        HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position, HumanoidRootPart.Position + Camera.CFrame.LookVector)
     end)
 end
 
@@ -166,6 +165,9 @@ function MicUp:StopFlying()
         FlyConnection:Disconnect()
         FlyConnection = nil
     end
+    
+    -- Re-enable character controls
+    Humanoid.PlatformStand = false
     
     for _, obj in ipairs(HumanoidRootPart:GetChildren()) do
         if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") then
@@ -320,7 +322,12 @@ end
 -- Sit
 function MicUp:ToggleSit()
     Config.Sit.Enabled = not Config.Sit.Enabled
-    Humanoid.Sit = Config.Sit.Enabled
+    if Config.Sit.Enabled then
+        Humanoid.Sit = true
+    else
+        Humanoid.Sit = false
+        Humanoid.Jump = true
+    end
 end
 
 -- Baseplate
@@ -348,19 +355,13 @@ function MicUp:CreateBaseplate()
     Baseplate.Material = Enum.Material.SmoothPlastic
     Baseplate.TopSurface = Enum.SurfaceType.Smooth
     Baseplate.BottomSurface = Enum.SurfaceType.Smooth
+    Baseplate.CanCollide = true
     
-    -- Position below player
-    Baseplate.CFrame = HumanoidRootPart.CFrame - Vector3.new(0, 5, 0)
+    -- Position below player at origin
+    Baseplate.CFrame = CFrame.new(0, HumanoidRootPart.Position.Y - 5, 0)
     
     Baseplate.Parent = Workspace
     BaseplateInstance = Baseplate
-    
-    -- Update position with player
-    RunService.Heartbeat:Connect(function()
-        if Config.Baseplate.Enabled and BaseplateInstance then
-            BaseplateInstance.CFrame = HumanoidRootPart.CFrame - Vector3.new(0, 5, 0)
-        end
-    end)
 end
 
 function MicUp:RemoveBaseplate()
