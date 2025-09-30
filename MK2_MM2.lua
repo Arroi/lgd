@@ -54,6 +54,11 @@ local Config = {
         CollectedCoins = 0,
         Speed = 0.5
     },
+    Speed = {
+        Enabled = false,
+        Multiplier = 2,
+        Method = "BodyVelocity" -- BodyVelocity method (undetectable)
+    },
     Camlock = {
         Enabled = false,
         Keybind = Enum.KeyCode.Q,
@@ -532,6 +537,78 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
+-- Speed Modifier System
+local SpeedConnection
+local SpeedBodyVelocity
+
+function MK2:StartSpeedModifier()
+    if SpeedConnection then return end
+    
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not humanoidRootPart then return end
+    
+    -- Create BodyVelocity for speed boost (undetectable method)
+    SpeedBodyVelocity = Instance.new("BodyVelocity")
+    SpeedBodyVelocity.Name = "SpeedBoost"
+    SpeedBodyVelocity.MaxForce = Vector3.new(100000, 0, 100000) -- Only affect X and Z (horizontal movement)
+    SpeedBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    SpeedBodyVelocity.Parent = humanoidRootPart
+    
+    SpeedConnection = RunService.Heartbeat:Connect(function()
+        if not Config.Speed.Enabled then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local humanoid = character:FindFirstChild("Humanoid")
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        
+        if not humanoid or not humanoidRootPart or not SpeedBodyVelocity then return end
+        
+        -- Get movement direction from Humanoid
+        local moveDirection = humanoid.MoveDirection
+        
+        if moveDirection.Magnitude > 0 then
+            -- Apply speed multiplier to movement direction
+            local baseSpeed = 16 -- Default Roblox walk speed
+            local boostedSpeed = baseSpeed * Config.Speed.Multiplier
+            
+            -- Calculate velocity boost
+            local velocityBoost = moveDirection * (boostedSpeed - baseSpeed)
+            SpeedBodyVelocity.Velocity = velocityBoost
+        else
+            SpeedBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        end
+    end)
+end
+
+function MK2:StopSpeedModifier()
+    if SpeedConnection then
+        SpeedConnection:Disconnect()
+        SpeedConnection = nil
+    end
+    
+    if SpeedBodyVelocity then
+        SpeedBodyVelocity:Destroy()
+        SpeedBodyVelocity = nil
+    end
+end
+
+function MK2:ToggleSpeedModifier()
+    Config.Speed.Enabled = not Config.Speed.Enabled
+    
+    if Config.Speed.Enabled then
+        self:StartSpeedModifier()
+    else
+        self:StopSpeedModifier()
+    end
+end
+
 -- Coin Collection System
 local CoinConnection
 local CollectingCoins = false
@@ -545,30 +622,24 @@ function MK2:StartCoinCollection()
     task.spawn(function()
         while Config.CoinCollector.Enabled and Config.CoinCollector.CollectedCoins < Config.CoinCollector.MaxCoins do
             local success = pcall(function()
-                local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                local Coins = ReplicatedStorage:FindFirstChild("Coins")
-                
-                if Coins then
-                    for _, coin in ipairs(Coins:GetChildren()) do
+                -- Search in Workspace for anything Coin_Server related
+                local character = LocalPlayer.Character
+                if character and character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = character.HumanoidRootPart
+                    
+                    -- Search all descendants in Workspace
+                    for _, obj in ipairs(Workspace:GetDescendants()) do
                         if Config.CoinCollector.CollectedCoins >= Config.CoinCollector.MaxCoins then
                             break
                         end
                         
-                        -- Look for Coin_Server part
-                        if coin.Name == "Coin_Server" or coin:FindFirstChild("Coin_Server") then
-                            local character = LocalPlayer.Character
-                            if character and character:FindFirstChild("HumanoidRootPart") then
-                                local hrp = character.HumanoidRootPart
-                                local coinPart = coin.Name == "Coin_Server" and coin or coin:FindFirstChild("Coin_Server")
-                                
-                                if coinPart and coinPart:IsA("BasePart") then
-                                    -- Teleport to coin
-                                    hrp.CFrame = CFrame.new(coinPart.Position)
-                                    task.wait(Config.CoinCollector.Speed)
-                                    
-                                    Config.CoinCollector.CollectedCoins = Config.CoinCollector.CollectedCoins + 1
-                                end
-                            end
+                        -- Look for anything with "Coin_Server" in the name
+                        if obj.Name:find("Coin_Server") and obj:IsA("BasePart") then
+                            -- Teleport to coin
+                            hrp.CFrame = CFrame.new(obj.Position)
+                            task.wait(Config.CoinCollector.Speed)
+                            
+                            Config.CoinCollector.CollectedCoins = Config.CoinCollector.CollectedCoins + 1
                         end
                     end
                 end
@@ -606,6 +677,17 @@ function MK2:ToggleCoinCollection()
         self:StopCoinCollection()
     end
 end
+
+-- Character Respawn Handler
+LocalPlayer.CharacterAdded:Connect(function(character)
+    task.wait(1)
+    
+    -- Reapply speed modifier if enabled
+    if Config.Speed.Enabled then
+        MK2:StopSpeedModifier()
+        MK2:StartSpeedModifier()
+    end
+end)
 
 -- Input Handling
 UserInputService.InputBegan:Connect(function(input, gameProcessed)

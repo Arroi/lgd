@@ -1162,6 +1162,15 @@ function PopulateSettingsPage(page)
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = page
     
+    CreateToggle(page, "Speed Modifier", "Undetectable speed boost", function(enabled)
+        MK2:ToggleSpeedModifier()
+        Notify("Speed", enabled and "Enabled" or "Disabled", 2)
+    end, Config.Speed.Enabled)
+    
+    CreateSlider(page, "Speed Multiplier", "Movement speed multiplier (1-5x)", 1, 5, Config.Speed.Multiplier, function(value)
+        Config.Speed.Multiplier = value
+    end)
+    
     CreateButton(page, "📋 Keybinds", "E = Aimbot | Q = Camlock", function()
         Notify("Keybinds", "E = Toggle Aimbot\nQ = Toggle Camlock", 5)
     end)
@@ -1179,10 +1188,10 @@ function PopulateSettingsPage(page)
     end, Color3.fromRGB(100, 200, 255))
     
     local InfoBox = Instance.new("TextLabel")
-    InfoBox.Size = UDim2.new(1, 0, 0, 120)
+    InfoBox.Size = UDim2.new(1, 0, 0, 140)
     InfoBox.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
     InfoBox.BorderSizePixel = 0
-    InfoBox.Text = "📊 Performance Info\n\n• Ping Compensation: Optimized for 200-300ms\n• Aimbot: High accuracy with prediction\n• ESP: Lightweight rendering\n• Coins: Auto-stops at limit"
+    InfoBox.Text = "📊 Performance Info\n\n• Ping Compensation: Optimized for 200-300ms\n• Aimbot: High accuracy with prediction\n• ESP: Lightweight rendering\n• Coins: Auto-stops at limit\n• Speed: Undetectable BodyVelocity method"
     InfoBox.TextColor3 = Color3.fromRGB(200, 200, 220)
     InfoBox.TextSize = 12
     InfoBox.Font = Enum.Font.Gotham
