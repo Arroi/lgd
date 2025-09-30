@@ -121,8 +121,20 @@ end
 function MicUp:StartFlying()
     if FlyConnection then return end
     
-    -- Disable default character controls
-    Humanoid.PlatformStand = true
+    -- Create BodyVelocity for smooth flying
+    local BV = Instance.new("BodyVelocity")
+    BV.Name = "FlyVelocity"
+    BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    BV.Velocity = Vector3.new(0, 0, 0)
+    BV.Parent = HumanoidRootPart
+    
+    -- Create BodyGyro to control rotation
+    local BG = Instance.new("BodyGyro")
+    BG.Name = "FlyGyro"
+    BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    BG.P = 9e4
+    BG.CFrame = HumanoidRootPart.CFrame
+    BG.Parent = HumanoidRootPart
     
     FlyConnection = RunService.Heartbeat:Connect(function()
         if not Config.Flying.Enabled then return end
@@ -131,16 +143,16 @@ function MicUp:StartFlying()
         local MoveDirection = Vector3.new(0, 0, 0)
         
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            MoveDirection = MoveDirection + (Camera.CFrame.LookVector)
+            MoveDirection = MoveDirection + Camera.CFrame.LookVector
         end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            MoveDirection = MoveDirection - (Camera.CFrame.LookVector)
+            MoveDirection = MoveDirection - Camera.CFrame.LookVector
         end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            MoveDirection = MoveDirection - (Camera.CFrame.RightVector)
+            MoveDirection = MoveDirection - Camera.CFrame.RightVector
         end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-            MoveDirection = MoveDirection + (Camera.CFrame.RightVector)
+            MoveDirection = MoveDirection + Camera.CFrame.RightVector
         end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
             MoveDirection = MoveDirection + Vector3.new(0, 1, 0)
@@ -149,14 +161,15 @@ function MicUp:StartFlying()
             MoveDirection = MoveDirection - Vector3.new(0, 1, 0)
         end
         
-        -- Smooth movement with CFrame lerp
+        -- Smooth velocity transition
         if MoveDirection.Magnitude > 0 then
-            local targetCFrame = HumanoidRootPart.CFrame + (MoveDirection.Unit * (Config.Flying.Speed / 10))
-            HumanoidRootPart.CFrame = HumanoidRootPart.CFrame:Lerp(targetCFrame, 0.3)
+            BV.Velocity = MoveDirection.Unit * Config.Flying.Speed
+        else
+            BV.Velocity = Vector3.new(0, 0, 0)
         end
         
-        -- Keep character upright and facing camera direction
-        HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position, HumanoidRootPart.Position + Camera.CFrame.LookVector)
+        -- Smooth rotation to face camera direction
+        BG.CFrame = Camera.CFrame
     end)
 end
 
@@ -166,11 +179,9 @@ function MicUp:StopFlying()
         FlyConnection = nil
     end
     
-    -- Re-enable character controls
-    Humanoid.PlatformStand = false
-    
+    -- Remove flying objects
     for _, obj in ipairs(HumanoidRootPart:GetChildren()) do
-        if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") then
+        if obj.Name == "FlyVelocity" or obj.Name == "FlyGyro" then
             obj:Destroy()
         end
     end
@@ -222,10 +233,20 @@ function MicUp:StartFollow(targetPlayer)
         local target = Config.Follow.Target
         if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
             local targetPos = target.Character.HumanoidRootPart.Position
-            local direction = (targetPos - HumanoidRootPart.Position).Unit
-            local newPos = targetPos - (direction * Config.Follow.Distance)
+            local currentPos = HumanoidRootPart.Position
             
-            HumanoidRootPart.CFrame = CFrame.new(newPos, targetPos)
+            -- Calculate direction and distance
+            local direction = (targetPos - currentPos).Unit
+            local distance = (targetPos - currentPos).Magnitude
+            
+            -- Only move if we're too far
+            if distance > Config.Follow.Distance then
+                local newPos = targetPos - (direction * Config.Follow.Distance)
+                
+                -- Smooth CFrame lerp for natural following
+                local targetCFrame = CFrame.new(newPos, targetPos)
+                HumanoidRootPart.CFrame = HumanoidRootPart.CFrame:Lerp(targetCFrame, 0.15)
+            end
         end
     end)
 end
