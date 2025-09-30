@@ -626,6 +626,7 @@ function MK2:StartCoinCollection()
                 local character = LocalPlayer.Character
                 if character and character:FindFirstChild("HumanoidRootPart") then
                     local hrp = character.HumanoidRootPart
+                    local originalCFrame = hrp.CFrame
                     
                     -- Search all descendants in Workspace
                     for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -635,9 +636,25 @@ function MK2:StartCoinCollection()
                         
                         -- Look for anything with "Coin_Server" in the name
                         if obj.Name:find("Coin_Server") and obj:IsA("BasePart") then
-                            -- Teleport to coin
-                            hrp.CFrame = CFrame.new(obj.Position)
-                            task.wait(Config.CoinCollector.Speed)
+                            -- Safe teleport with offset to avoid invalid position
+                            local coinPos = obj.Position
+                            local safePos = coinPos + Vector3.new(0, 3, 0) -- Teleport slightly above coin
+                            
+                            -- Teleport with pcall to catch errors
+                            pcall(function()
+                                hrp.CFrame = CFrame.new(safePos)
+                            end)
+                            
+                            -- Wait for coin collection
+                            task.wait(0.3)
+                            
+                            -- Teleport back slightly to ensure collection
+                            pcall(function()
+                                hrp.CFrame = CFrame.new(coinPos)
+                            end)
+                            
+                            -- Wait 2 seconds after collection to bypass kick
+                            task.wait(2)
                             
                             Config.CoinCollector.CollectedCoins = Config.CoinCollector.CollectedCoins + 1
                         end
@@ -646,10 +663,10 @@ function MK2:StartCoinCollection()
             end)
             
             if not success then
-                task.wait(1)
+                task.wait(2)
             end
             
-            task.wait(0.1)
+            task.wait(0.5)
         end
         
         CollectingCoins = false
