@@ -72,23 +72,12 @@ local FollowConnection
 local OrbitConnection
 local SpinConnection
 
--- Voice Chat Bypass
+-- Voice Chat Bypass (Enhanced)
 function MicUp:BypassVoiceChat()
     if not Config.Voice.Enabled then return end
     
     pcall(function()
-        -- Method 1: Spoof voice state
-        local success = pcall(function()
-            if VoiceChatService then
-                -- Enable voice chat if suspended
-                if not VoiceChatService:IsVoiceEnabledForUserIdAsync(LocalPlayer.UserId) then
-                    Config.Voice.Bypassed = true
-                    Config.Voice.FakeEnabled = true
-                end
-            end
-        end)
-        
-        -- Method 2: Hook voice chat functions
+        -- Method 1: Hook metamethods
         local oldNamecall
         oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
             local method = getnamecallmethod()
@@ -98,10 +87,41 @@ function MicUp:BypassVoiceChat()
                 return true
             elseif method == "GetVoiceState" then
                 return Enum.VoiceState.Talking
+            elseif method == "GetVoiceEnabled" then
+                return true
+            elseif method == "IsVoiceEnabled" then
+                return true
             end
             
             return oldNamecall(self, ...)
         end)
+        
+        -- Method 2: Hook __index
+        local oldIndex
+        oldIndex = hookmetamethod(game, "__index", function(self, key)
+            if key == "VoiceEnabled" then
+                return true
+            elseif key == "VoiceState" then
+                return Enum.VoiceState.Talking
+            end
+            
+            return oldIndex(self, key)
+        end)
+        
+        -- Method 3: Spoof VoiceChatService
+        if VoiceChatService then
+            pcall(function()
+                VoiceChatService.EnableDefaultVoice = true
+            end)
+        end
+        
+        -- Method 4: Hook TextChatService
+        local TextChatService = game:GetService("TextChatService")
+        if TextChatService then
+            pcall(function()
+                TextChatService.ChatVersion = Enum.ChatVersion.TextChatService
+            end)
+        end
         
         Config.Voice.Bypassed = true
     end)
@@ -121,27 +141,29 @@ end
 function MicUp:StartFlying()
     if FlyConnection then return end
     
-    -- Create BodyVelocity for smooth flying
-    local BV = Instance.new("BodyVelocity")
-    BV.Name = "FlyVelocity"
-    BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    BV.Velocity = Vector3.new(0, 0, 0)
-    BV.Parent = HumanoidRootPart
-    
-    -- Create BodyGyro to control rotation
+    -- Disable gravity
     local BG = Instance.new("BodyGyro")
     BG.Name = "FlyGyro"
     BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
     BG.P = 9e4
+    BG.D = 500
     BG.CFrame = HumanoidRootPart.CFrame
     BG.Parent = HumanoidRootPart
     
-    FlyConnection = RunService.Heartbeat:Connect(function()
+    local BV = Instance.new("BodyVelocity")
+    BV.Name = "FlyVelocity"
+    BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    BV.Velocity = Vector3.new(0, 0, 0)
+    BV.P = 1250
+    BV.Parent = HumanoidRootPart
+    
+    FlyConnection = RunService.Heartbeat:Connect(function(dt)
         if not Config.Flying.Enabled then return end
         
         local Camera = Workspace.CurrentCamera
         local MoveDirection = Vector3.new(0, 0, 0)
         
+        -- Get input direction
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then
             MoveDirection = MoveDirection + Camera.CFrame.LookVector
         end
@@ -161,15 +183,16 @@ function MicUp:StartFlying()
             MoveDirection = MoveDirection - Vector3.new(0, 1, 0)
         end
         
-        -- Smooth velocity transition
+        -- Apply velocity
         if MoveDirection.Magnitude > 0 then
             BV.Velocity = MoveDirection.Unit * Config.Flying.Speed
         else
-            BV.Velocity = Vector3.new(0, 0, 0)
+            -- Slow down when no input
+            BV.Velocity = BV.Velocity * 0.9
         end
         
-        -- Smooth rotation to face camera direction
-        BG.CFrame = Camera.CFrame
+        -- Update rotation
+        BG.CFrame = CFrame.new(HumanoidRootPart.Position, HumanoidRootPart.Position + Camera.CFrame.LookVector)
     end)
 end
 
