@@ -141,6 +141,11 @@ end
 function MicUp:StartFlying()
     if FlyConnection then return end
     
+    -- Disable animations
+    for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
+        track:Stop()
+    end
+    
     -- Disable gravity
     local BG = Instance.new("BodyGyro")
     BG.Name = "FlyGyro"
@@ -157,8 +162,16 @@ function MicUp:StartFlying()
     BV.P = 1250
     BV.Parent = HumanoidRootPart
     
+    -- Disable character animations during flight
+    Humanoid.PlatformStand = true
+    
     FlyConnection = RunService.Heartbeat:Connect(function(dt)
         if not Config.Flying.Enabled then return end
+        
+        -- Stop animations continuously
+        for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
+            track:Stop()
+        end
         
         local Camera = Workspace.CurrentCamera
         local MoveDirection = Vector3.new(0, 0, 0)
@@ -201,6 +214,9 @@ function MicUp:StopFlying()
         FlyConnection:Disconnect()
         FlyConnection = nil
     end
+    
+    -- Re-enable animations
+    Humanoid.PlatformStand = false
     
     -- Remove flying objects
     for _, obj in ipairs(HumanoidRootPart:GetChildren()) do
@@ -338,15 +354,32 @@ end
 function MicUp:StartSpin()
     if SpinConnection then return end
     
+    -- Disable animations for smooth spin
+    for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
+        track:Stop()
+    end
+    
     local BG = Instance.new("BodyGyro")
+    BG.Name = "SpinGyro"
     BG.MaxTorque = Vector3.new(0, 9e9, 0)
-    BG.P = 10000
+    BG.P = 9000
+    BG.D = 100
+    BG.CFrame = HumanoidRootPart.CFrame
     BG.Parent = HumanoidRootPart
     
-    SpinConnection = RunService.Heartbeat:Connect(function()
+    local angle = 0
+    
+    SpinConnection = RunService.Heartbeat:Connect(function(dt)
         if not Config.Spin.Enabled then return end
         
-        BG.CFrame = BG.CFrame * CFrame.Angles(0, math.rad(Config.Spin.Speed), 0)
+        -- Stop animations continuously
+        for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
+            track:Stop()
+        end
+        
+        -- Smooth rotation
+        angle = angle + math.rad(Config.Spin.Speed)
+        BG.CFrame = CFrame.new(HumanoidRootPart.Position) * CFrame.Angles(0, angle, 0)
     end)
 end
 
@@ -357,13 +390,13 @@ function MicUp:StopSpin()
     end
     
     for _, obj in ipairs(HumanoidRootPart:GetChildren()) do
-        if obj:IsA("BodyGyro") then
+        if obj.Name == "SpinGyro" then
             obj:Destroy()
         end
     end
 end
 
--- Sit
+{{ ... }}
 function MicUp:ToggleSit()
     Config.Sit.Enabled = not Config.Sit.Enabled
     if Config.Sit.Enabled then

@@ -16,7 +16,6 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Variables
 local Library = {}
@@ -677,15 +676,230 @@ function Library:CreateTab(name)
     return tab
 end
 
--- Initialize UI
-local Window = Library:CreateWindow("🎤 Mic Up")
+-- Password Protection
+local function CreatePasswordGUI()
+    local PasswordGui = Instance.new("ScreenGui")
+    PasswordGui.Name = "MicUpPassword"
+    PasswordGui.ResetOnSpawn = false
+    PasswordGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    PasswordGui.Parent = CoreGui
+    
+    -- Blur
+    local Blur = Instance.new("BlurEffect")
+    Blur.Size = 0
+    Blur.Parent = game:GetService("Lighting")
+    Tween(Blur, {Size = 15}, 0.5)
+    
+    -- Password Frame
+    local PasswordFrame = Instance.new("Frame")
+    PasswordFrame.Size = UDim2.new(0, 400, 0, 280)
+    PasswordFrame.Position = UDim2.new(0.5, -200, 0.5, -140)
+    PasswordFrame.BackgroundColor3 = Theme.Background
+    PasswordFrame.BorderSizePixel = 0
+    PasswordFrame.Parent = PasswordGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = PasswordFrame
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Theme.Accent
+    stroke.Thickness = 2
+    stroke.Parent = PasswordFrame
+    
+    -- Enhanced gradient
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new(Theme.Background, Theme.Secondary)
+    gradient.Rotation = 45
+    gradient.Parent = PasswordFrame
+    
+    -- Logo
+    local Logo = Instance.new("Frame")
+    Logo.Size = UDim2.new(0, 70, 0, 70)
+    Logo.Position = UDim2.new(0.5, -35, 0, -35)
+    Logo.BackgroundColor3 = Theme.Accent
+    Logo.BorderSizePixel = 0
+    Logo.Parent = PasswordFrame
+    
+    local logoCorner = Instance.new("UICorner")
+    logoCorner.CornerRadius = UDim.new(0, 12)
+    logoCorner.Parent = Logo
+    
+    local logoText = Instance.new("TextLabel")
+    logoText.Size = UDim2.new(1, 0, 1, 0)
+    logoText.BackgroundTransparency = 1
+    logoText.Text = "🎤"
+    logoText.TextColor3 = Theme.Text
+    logoText.TextSize = 36
+    logoText.Font = Enum.Font.GothamBold
+    logoText.Parent = Logo
+    
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 35)
+    title.Position = UDim2.new(0, 0, 0, 55)
+    title.BackgroundTransparency = 1
+    title.Text = "MIC UP"
+    title.TextColor3 = Theme.Text
+    title.TextSize = 24
+    title.Font = Enum.Font.GothamBold
+    title.Parent = PasswordFrame
+    
+    local subtitle = Instance.new("TextLabel")
+    subtitle.Size = UDim2.new(1, 0, 0, 20)
+    subtitle.Position = UDim2.new(0, 0, 0, 90)
+    subtitle.BackgroundTransparency = 1
+    subtitle.Text = "LinoriaLib Inspired UI"
+    subtitle.TextColor3 = Theme.TextDark
+    subtitle.TextSize = 13
+    subtitle.Font = Enum.Font.Gotham
+    subtitle.Parent = PasswordFrame
+    
+    local version = Instance.new("TextLabel")
+    version.Size = UDim2.new(1, 0, 0, 15)
+    version.Position = UDim2.new(0, 0, 1, -20)
+    version.BackgroundTransparency = 1
+    version.Text = "v3.0 | Undetected"
+    version.TextColor3 = Theme.Accent
+    version.TextSize = 11
+    version.Font = Enum.Font.GothamBold
+    version.Parent = PasswordFrame
+    
+    -- Input
+    local inputFrame = Instance.new("Frame")
+    inputFrame.Size = UDim2.new(0.85, 0, 0, 45)
+    inputFrame.Position = UDim2.new(0.075, 0, 0, 130)
+    inputFrame.BackgroundColor3 = Theme.Secondary
+    inputFrame.BorderSizePixel = 0
+    inputFrame.Parent = PasswordFrame
+    
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 8)
+    inputCorner.Parent = inputFrame
+    
+    local inputStroke = Instance.new("UIStroke")
+    inputStroke.Color = Theme.Border
+    inputStroke.Thickness = 1
+    inputStroke.Parent = inputFrame
+    
+    local input = Instance.new("TextBox")
+    input.Size = UDim2.new(1, -20, 1, 0)
+    input.Position = UDim2.new(0, 10, 0, 0)
+    input.BackgroundTransparency = 1
+    input.Text = ""
+    input.PlaceholderText = "Enter Password..."
+    input.TextColor3 = Theme.Text
+    input.PlaceholderColor3 = Theme.TextDark
+    input.TextSize = 14
+    input.Font = Enum.Font.Gotham
+    input.TextXAlignment = Enum.TextXAlignment.Left
+    input.ClearTextOnFocus = false
+    input.Parent = inputFrame
+    
+    -- Submit Button
+    local submitBtn = Instance.new("TextButton")
+    submitBtn.Size = UDim2.new(0.85, 0, 0, 45)
+    submitBtn.Position = UDim2.new(0.075, 0, 0, 190)
+    submitBtn.BackgroundColor3 = Theme.Accent
+    submitBtn.BorderSizePixel = 0
+    submitBtn.Text = "AUTHENTICATE"
+    submitBtn.TextColor3 = Theme.Text
+    submitBtn.TextSize = 16
+    submitBtn.Font = Enum.Font.GothamBold
+    submitBtn.Parent = PasswordFrame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = submitBtn
+    
+    local function CheckPassword()
+        if input.Text == Config.Password then
+            Tween(PasswordFrame, {Size = UDim2.new(0, 400, 0, 0), Position = UDim2.new(0.5, -200, 0.5, 0)}, 0.4)
+            Tween(Blur, {Size = 0}, 0.4)
+            task.wait(0.4)
+            PasswordGui:Destroy()
+            Blur:Destroy()
+            InitializeUI()
+        else
+            input.Text = ""
+            -- Shake animation
+            for i = 1, 3 do
+                Tween(PasswordFrame, {Position = UDim2.new(0.5, -210, 0.5, -140)}, 0.05)
+                task.wait(0.05)
+                Tween(PasswordFrame, {Position = UDim2.new(0.5, -190, 0.5, -140)}, 0.05)
+                task.wait(0.05)
+            end
+            PasswordFrame.Position = UDim2.new(0.5, -200, 0.5, -140)
+            Tween(inputStroke, {Color = Theme.Error}, 0.2)
+            task.wait(0.5)
+            Tween(inputStroke, {Color = Theme.Border}, 0.2)
+        end
+    end
+    
+    submitBtn.MouseButton1Click:Connect(CheckPassword)
+    input.FocusLost:Connect(function(enterPressed)
+        if enterPressed then CheckPassword() end
+    end)
+    
+    submitBtn.MouseEnter:Connect(function()
+        Tween(submitBtn, {BackgroundColor3 = Theme.AccentDark}, 0.2)
+    end)
+    
+    submitBtn.MouseLeave:Connect(function()
+        Tween(submitBtn, {BackgroundColor3 = Theme.Accent}, 0.2)
+    end)
+end
 
--- Create Tabs
-local HomeTab = Library:CreateTab("Home")
-local VoiceTab = Library:CreateTab("Voice")
-local MovementTab = Library:CreateTab("Movement")
-local AdminTab = Library:CreateTab("Admin")
-local SettingsTab = Library:CreateTab("Settings")
+-- Initialize UI
+function InitializeUI()
+    local Window = Library:CreateWindow("🎤 Mic Up")
+
+    -- Create Tabs
+    local InfoTab = Library:CreateTab("Info")
+    local HomeTab = Library:CreateTab("Home")
+    local VoiceTab = Library:CreateTab("Voice")
+    local MovementTab = Library:CreateTab("Movement")
+    local AdminTab = Library:CreateTab("Admin")
+    local SettingsTab = Library:CreateTab("Settings")
+    
+    -- Info Tab (Client Information)
+    InfoTab:AddSection("Client Information")
+    InfoTab:AddLabel("Script: Mic Up v3.0")
+    InfoTab:AddLabel("UI: LinoriaLib Inspired")
+    InfoTab:AddLabel("Developer: Arroi")
+    InfoTab:AddLabel("Status: ✅ Active")
+    
+    InfoTab:AddSection("System Information")
+    local playerLabel = InfoTab:AddLabel("Player: " .. LocalPlayer.Name)
+    local displayLabel = InfoTab:AddLabel("Display: " .. LocalPlayer.DisplayName)
+    local userIdLabel = InfoTab:AddLabel("UserID: " .. LocalPlayer.UserId)
+    local accountAgeLabel = InfoTab:AddLabel("Account Age: " .. LocalPlayer.AccountAge .. " days")
+    
+    InfoTab:AddSection("Game Information")
+    local gameLabel = InfoTab:AddLabel("Game: " .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name)
+    local placeIdLabel = InfoTab:AddLabel("Place ID: " .. game.PlaceId)
+    local playersLabel = InfoTab:AddLabel("Players: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers)
+    
+    -- Update player count
+    task.spawn(function()
+        while task.wait(5) do
+            if playersLabel then
+                playersLabel.Text = "Players: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers
+            end
+        end
+    end)
+    
+    InfoTab:AddSection("Features")
+    InfoTab:AddLabel("✅ Voice Chat Bypass (4 methods)")
+    InfoTab:AddLabel("✅ Advanced Flying System")
+    InfoTab:AddLabel("✅ Admin Commands")
+    InfoTab:AddLabel("✅ Movement Tools")
+    InfoTab:AddLabel("✅ LinoriaLib UI")
+    
+    InfoTab:AddSection("Credits")
+    InfoTab:AddLabel("UI Design: LinoriaLib Inspired")
+    InfoTab:AddLabel("Script: Arroi/lgd")
+    InfoTab:AddLabel("Educational purposes only")
 
 -- Home Tab
 HomeTab:AddLabel("Welcome to Mic Up! Modern voice bypass and movement system.")
@@ -745,6 +959,10 @@ MovementTab:AddToggle("Spin", Config.Spin.Enabled, function(enabled)
     end
 end)
 
+MovementTab:AddSlider("Spin Speed", 1, 20, Config.Spin.Speed, function(value)
+    Config.Spin.Speed = value
+end)
+
 MovementTab:AddToggle("Sit", Config.Sit.Enabled, function(enabled)
     MicUp:ToggleSit()
 end)
@@ -773,25 +991,21 @@ AdminTab:AddDropdown("Select Player", playerNames, playerNames[1], function(valu
     selectedPlayer = Players:FindFirstChild(value)
 end)
 
-AdminTab:AddButton("Kick Player", function()
-    if selectedPlayer then
-        pcall(function()
-            selectedPlayer:Kick("Kicked by Mic Up")
-        end)
-        Notify("Admin", "Kicked " .. selectedPlayer.Name, 2, Theme.Success)
+AdminTab:AddLabel("⚠️ Client-side commands only (FE compatible)")
+
+AdminTab:AddButton("View Player", function()
+    if selectedPlayer and selectedPlayer.Character then
+        Workspace.CurrentCamera.CameraSubject = selectedPlayer.Character.Humanoid
+        Notify("Admin", "Viewing " .. selectedPlayer.Name, 2, Theme.Success)
     else
         Notify("Admin", "No player selected", 2, Theme.Error)
     end
 end)
 
-AdminTab:AddButton("Kill Player", function()
-    if selectedPlayer and selectedPlayer.Character then
-        pcall(function()
-            selectedPlayer.Character.Humanoid.Health = 0
-        end)
-        Notify("Admin", "Killed " .. selectedPlayer.Name, 2, Theme.Success)
-    else
-        Notify("Admin", "No player selected or no character", 2, Theme.Error)
+AdminTab:AddButton("Reset Camera", function()
+    if LocalPlayer.Character then
+        Workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
+        Notify("Admin", "Camera reset", 2, Theme.Success)
     end
 end)
 
@@ -817,15 +1031,19 @@ AdminTab:AddButton("Bring Player", function()
     end
 end)
 
--- Settings Tab
-SettingsTab:AddSection("Configuration")
-SettingsTab:AddButton("Reset All Settings", function()
-    Config.Flying.Speed = 50
-    Notify("Settings", "Reset to defaults", 2, Theme.Success)
-end)
+    -- Settings Tab
+    SettingsTab:AddSection("Configuration")
+    SettingsTab:AddButton("Reset All Settings", function()
+        Config.Flying.Speed = 50
+        Notify("Settings", "Reset to defaults", 2, Theme.Success)
+    end)
 
-SettingsTab:AddLabel("Keybinds: F = Flying | T = TP Tool")
-SettingsTab:AddLabel("Version: 3.0 LinoriaLib UI")
+    SettingsTab:AddLabel("Keybinds: F = Flying | T = TP Tool")
+    SettingsTab:AddLabel("Version: 3.0 LinoriaLib UI")
 
--- Initial notification
-Notify("Mic Up", "LinoriaLib UI loaded successfully!", 3, Theme.Success)
+    -- Initial notification
+    Notify("Mic Up", "LinoriaLib UI loaded successfully!", 3, Theme.Success)
+end
+
+-- Start with password protection
+CreatePasswordGUI()
