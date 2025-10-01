@@ -16,9 +16,40 @@ local HttpService = game:GetService("HttpService")
 
 -- Local Player
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- Function to get character safely
+local function GetCharacter()
+    return LocalPlayer.Character
+end
+
+local function GetHumanoid()
+    local char = GetCharacter()
+    return char and char:FindFirstChild("Humanoid")
+end
+
+local function GetHumanoidRootPart()
+    local char = GetCharacter()
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+-- Initial character setup
+local Character
+local Humanoid
+local HumanoidRootPart
+
+local function UpdateCharacter()
+    Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    Humanoid = Character:WaitForChild("Humanoid")
+    HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+end
+
+-- Initialize character
+if LocalPlayer.Character then
+    UpdateCharacter()
+else
+    LocalPlayer.CharacterAdded:Wait()
+    UpdateCharacter()
+end
 
 -- Configuration
 local Config = {
@@ -140,6 +171,7 @@ end
 
 function MicUp:StartFlying()
     if FlyConnection then return end
+    if not Character or not Humanoid or not HumanoidRootPart then return end
     
     -- Disable animations
     for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
@@ -216,9 +248,12 @@ function MicUp:StopFlying()
     end
     
     -- Re-enable animations
-    Humanoid.PlatformStand = false
+    if Humanoid then
+        Humanoid.PlatformStand = false
+    end
     
     -- Remove flying objects
+    if not HumanoidRootPart then return end
     for _, obj in ipairs(HumanoidRootPart:GetChildren()) do
         if obj.Name == "FlyVelocity" or obj.Name == "FlyGyro" then
             obj:Destroy()
@@ -353,6 +388,7 @@ end
 
 function MicUp:StartSpin()
     if SpinConnection then return end
+    if not Character or not Humanoid or not HumanoidRootPart then return end
     
     -- Disable animations for smooth spin
     for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
@@ -389,6 +425,7 @@ function MicUp:StopSpin()
         SpinConnection = nil
     end
     
+    if not HumanoidRootPart then return end
     for _, obj in ipairs(HumanoidRootPart:GetChildren()) do
         if obj.Name == "SpinGyro" then
             obj:Destroy()
@@ -398,6 +435,7 @@ end
 
 {{ ... }}
 function MicUp:ToggleSit()
+    if not Humanoid then return end
     Config.Sit.Enabled = not Config.Sit.Enabled
     if Config.Sit.Enabled then
         Humanoid.Sit = true
@@ -419,6 +457,7 @@ function MicUp:ToggleBaseplate()
 end
 
 function MicUp:CreateBaseplate()
+    if not HumanoidRootPart then return end
     if BaseplateInstance then
         BaseplateInstance:Destroy()
     end
